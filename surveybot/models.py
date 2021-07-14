@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-engine = create_engine('sqlite:///:memory:')
+engine = create_engine("postgresql://postgres:password@postgres/postgres")
 Base = declarative_base()
 
 
@@ -15,6 +15,7 @@ class Answer(Base):
     id = Column(Integer, primary_key=True)
 
     question = Column(Integer)
+    author = Column(Integer)
     stamp = Column(DateTime, default=datetime.datetime.utcnow)
 
     is_text = Column(Boolean)

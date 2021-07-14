@@ -10,6 +10,7 @@ class Survey:
         self.code = js["entrance_code"]
         self.allow_restarts = js["allow_restarts"]
         self.end_message = js["end_message"]
+        self.export_code = js["export_code"]
 
         self.questions = [Question(x) for x in js["questions"]]
 

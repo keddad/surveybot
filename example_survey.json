@@ -2,6 +2,7 @@
   "name": "Survey",
   "entrance_code": "password",
   "allow_restarts": true,
+  "export_code": "mysecret",
   "end_message": "Спасибо за прохождение, мяу",
   "questions": [
     {

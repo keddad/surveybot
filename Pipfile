@@ -9,6 +9,8 @@ sqlalchemy = "*"
 pysoundfile = "*"
 vosk = "*"
 numpy = "*"
+psycopg2-binary = "*"
+loguru = "*"
 
 [dev-packages]
 

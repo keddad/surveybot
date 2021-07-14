@@ -1,0 +1,25 @@
+version: "3"
+
+volumes:
+  pg_survey:
+
+services:
+  bot:
+    build: .
+    restart: always
+    volumes:
+      - ./survey.json:/survey.json:rw
+      - ./model:/model:ro
+      - ./data:/data:rw
+    environment:
+      - BOTTOKEN=
+  postgres:
+    image: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=postgres
+    volumes:
+      - pg_survey:/var/lib/postgresql/data
