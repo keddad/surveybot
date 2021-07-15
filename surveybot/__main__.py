@@ -92,6 +92,19 @@ def send_welcome(message: telebot.types.Message):
                     return
 
 
+@bot.message_handler(commands=["back"], func=lambda msg: msg.from_user.id in state)
+def back(message: telebot.types.Message):
+    if state[message.from_user.id] == 0:
+        bot.send_message(message.chat.id, "Вы еще не отправили ни одного сообщения!")
+    else:
+        last_answer = session.query(Answer).filter(Answer.author == message.from_user.id).order_by(
+            Answer.stamp.desc()).first()
+        session.delete(last_answer)
+        state[message.from_user.id] -= 1
+        session.commit()
+        bot.send_message(message.chat.id, SURVEY.questions[state[message.from_user.id]].text)
+
+
 @bot.message_handler(commands=["export"])
 def export(message: telebot.types.Message):
     try:

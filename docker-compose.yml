@@ -12,7 +12,7 @@ services:
       - ./model:/model:ro
       - ./data:/data:rw
     environment:
-      - BOTTOKEN=
+      - BOTTOKEN=1399466852:AAEybNKrRcNw4lIgChRedpZzOH7ZbLPiMIo
   postgres:
     image: postgres
     restart: always
