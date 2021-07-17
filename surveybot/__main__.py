@@ -8,7 +8,7 @@ from pathlib import Path
 import telebot
 from vosk import Model, KaldiRecognizer, SetLogLevel
 
-from surveybot.models import Answer
+from surveybot.models import Answer, session
 from surveybot.survey import Survey
 
 SetLogLevel(-10)
@@ -39,7 +39,7 @@ def chunks(lst, n):
 
 @bot.message_handler(commands=["reset"], func=lambda msg: SURVEY is not None)
 def reset(message: telebot.types.Message):
-    global SURVEY, state, DATA_PATH, SURVEY_PATH, session
+    global SURVEY, state, DATA_PATH, SURVEY_PATH
     try:
         if message.text.split(" ")[1] == SURVEY.export_code:
             SURVEY = None
@@ -48,9 +48,11 @@ def reset(message: telebot.types.Message):
             for file in DATA_PATH.glob("*"):
                 file.unlink()
 
-            session.query(Answer).delete()
+            for el in session.query(Answer).all():
+                session.delete(el)
 
             SURVEY_PATH.write_bytes(b"")
+            bot.send_message(message.chat.id, "Reset done")
     except Exception as e:
         bot.send_message(message.chat.id, f"{str(e)} while resetting things")
 
@@ -218,7 +220,29 @@ def process_answer(message: telebot.types.Message):
             return
     else:
         if SURVEY.questions[state[message.from_user.id]].roundies_allowed:
-            return
+            data = bot.download_file(bot.get_file(message.video_note.file_id).file_path)
+            file_name = f"{message.from_user.full_name}_{state[message.from_user.id] + 1}_{datetime.datetime.now()}.mp4"
+            abs_path = str((DATA_PATH / Path(file_name)).resolve())
+
+            (DATA_PATH / Path(file_name)).write_bytes(data)
+
+            process = subprocess.Popen(['ffmpeg', '-loglevel', 'quiet', '-i',
+                                        abs_path,
+                                        '-ar', str(16000), '-ac', '1', '-f', 's16le', '-'],
+                                       stdout=subprocess.PIPE)
+
+            rec = KaldiRecognizer(MODEL, 16000)
+
+            while True:
+                data = process.stdout.read(4000)
+                if len(data) == 0:
+                    break
+                rec.AcceptWaveform(data)
+
+            session.add(
+                Answer(text=json.loads(rec.FinalResult())["text"], question=state[message.from_user.id],
+                       is_rounides=True,
+                       filename=file_name, author=message.from_user.id))
         else:
             bot.send_message(message.chat.id, "На этот вопрос нельзя ответить кругляшом")
             return
