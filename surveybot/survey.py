@@ -14,6 +14,9 @@ class Survey:
 
         self.questions = [Question(x) for x in js["questions"]]
 
+        if type(self.code) != str or self.code == "" or self.export_code == "" or type(self.export_code) != str:
+            raise TypeError
+
 
 class Question:
 

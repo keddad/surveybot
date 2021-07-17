@@ -8,7 +8,7 @@ from pathlib import Path
 import telebot
 from vosk import Model, KaldiRecognizer, SetLogLevel
 
-from surveybot.models import session, Answer
+from surveybot.models import Answer
 from surveybot.survey import Survey
 
 SetLogLevel(-10)
@@ -20,7 +20,8 @@ SURVEY = None
 MODEL = Model("../model")
 
 if SURVEY_PATH.exists():
-    SURVEY = Survey(SURVEY_PATH.read_text())
+    if len(SURVEY_PATH.read_bytes()):
+        SURVEY = Survey(SURVEY_PATH.read_text())
 
 if not DATA_PATH.exists():
     DATA_PATH.mkdir()
@@ -36,8 +37,27 @@ def chunks(lst, n):
         yield lst[i:i + n]
 
 
+@bot.message_handler(commands=["reset"], func=lambda msg: SURVEY is not None)
+def reset(message: telebot.types.Message):
+    global SURVEY, state, DATA_PATH, SURVEY_PATH, session
+    try:
+        if message.text.split(" ")[1] == SURVEY.export_code:
+            SURVEY = None
+            state = {}
+
+            for file in DATA_PATH.glob("*"):
+                file.unlink()
+
+            session.query(Answer).delete()
+
+            SURVEY_PATH.write_bytes(b"")
+    except Exception as e:
+        bot.send_message(message.chat.id, f"{str(e)} while resetting things")
+
+
 @bot.message_handler(content_types=["document"], func=lambda msg: SURVEY is None)
 def set_survey(message: telebot.types.Message):
+    global SURVEY
     data = bot.download_file(bot.get_file(message.document.file_id).file_path)
 
     try:
@@ -145,7 +165,7 @@ def export(message: telebot.types.Message):
         bot.send_message(message.chat.id, f"{str(e)} while exporting things")
 
 
-@bot.message_handler(content_types=["text"], func=lambda msg: msg.from_user.id not in state)
+@bot.message_handler(content_types=["text"], func=lambda msg: msg.from_user.id not in state and SURVEY is not None)
 def verify_code(message: telebot.types.Message):
     last_answer = session.query(Answer).filter(Answer.author == message.from_user.id).order_by(
         Answer.stamp.desc()).first()
